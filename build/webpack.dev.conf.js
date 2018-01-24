@@ -9,6 +9,11 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const FriendlyErrorsPlugin = require('friendly-errors-webpack-plugin')
 const portfinder = require('portfinder')
+const glob = require('glob')
+
+Object.keys(baseWebpackConfig.entry).forEach(function(name) {
+  baseWebpackConfig.entry[name] = ['./build/dev-client'].concat(baseWebpackConfig.entry[name])
+})
 
 const HOST = process.env.HOST
 const PORT = process.env.PORT && Number(process.env.PORT)
@@ -52,18 +57,18 @@ const devWebpackConfig = merge(baseWebpackConfig, {
     new webpack.NamedModulesPlugin(), // HMR shows correct file names in console on update.
     new webpack.NoEmitOnErrorsPlugin(),
     // https://github.com/ampedandwired/html-webpack-plugin
-    new HtmlWebpackPlugin({
-      filename: 'index.html',
-      template: './src/pages/index/index.html',
-      inject: true,
-      chunks: ['index']
-    }),
-    new HtmlWebpackPlugin({
-      filename: 'home.html',
-      template: './src/pages/home/home.html',
-      inject: true,
-      chunks: ['home']
-    }),
+    // new HtmlWebpackPlugin({
+    //   filename: 'index.html',
+    //   template: './src/pages/index/index.html',
+    //   inject: true,
+    //   chunks: ['index']
+    // }),
+    // new HtmlWebpackPlugin({
+    //   filename: 'home.html',
+    //   template: './src/pages/home/home.html',
+    //   inject: true,
+    //   chunks: ['home']
+    // }),
     // copy custom static assets
     new CopyWebpackPlugin([
       {
@@ -100,3 +105,28 @@ module.exports = new Promise((resolve, reject) => {
     }
   })
 })
+
+function getEntry(globPath) {
+  var entries = {},
+    basename;
+
+  glob.sync(globPath).forEach(function(entry) {
+    basename = path.basename(entry, path.extname(entry));
+    entries[basename] = entry;
+  });
+  return entries;
+}
+
+var pages = getEntry('./src/pages/**/*.html');
+
+for (var pathname in pages) {
+  // 配置生成的html文件，定义路径等
+  var conf = {
+    filename: pathname + '.html',
+    template: pages[pathname], // 模板路径
+    inject: true, // js插入位置
+    chunks: [pathname]
+  };
+  // module.exports.plugins.push(new HtmlWebpackPlugin(conf));
+  devWebpackConfig.plugins.push(new HtmlWebpackPlugin(conf));
+}
